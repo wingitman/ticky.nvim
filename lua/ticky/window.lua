@@ -49,11 +49,13 @@ end
 --- @param exit_code integer
 local function teardown(on_exit, exit_code)
   if M.is_open() then
-    vim.api.nvim_win_close(state.win, true)
+    -- pcall guards against double-close races (e.g. user called M.close()
+    -- just before the process exit callback fires).
+    pcall(vim.api.nvim_win_close, state.win, true)
     state.win = nil
   end
   if M.has_buf() then
-    vim.api.nvim_buf_delete(state.buf, { force = true })
+    pcall(vim.api.nvim_buf_delete, state.buf, { force = true })
     state.buf = nil
   end
   state.job = nil
@@ -61,6 +63,9 @@ local function teardown(on_exit, exit_code)
     pcall(vim.api.nvim_del_augroup_by_id, state.augroup)
     state.augroup = nil
   end
+  -- Force a full redraw to clear any BubbleTea alt-screen artifacts that
+  -- may have been left behind when the terminal process exited.
+  pcall(vim.cmd, "redraw!")
   if on_exit then
     on_exit(exit_code)
   end
@@ -82,9 +87,11 @@ function M.open(opts, cmd, on_exit)
   local wcfg = win_config(opts)
   state.win = vim.api.nvim_open_win(state.buf, true, wcfg)
 
-  vim.wo[state.win].winblend    = opts.winblend or 0
+  vim.wo[state.win].winblend     = opts.winblend or 0
   vim.wo[state.win].winhighlight = "Normal:TickyNormal,FloatBorder:TickyBorder"
-  vim.wo[state.win].cursorline  = false
+  vim.wo[state.win].cursorline   = false
+  vim.wo[state.win].winbar       = ""   -- prevent global winbar bleeding into the float
+  vim.wo[state.win].statusline   = " "  -- prevent global statusline bleeding into the float
 
   state.job = vim.fn.termopen(cmd, {
     on_exit = function(_, code, _)

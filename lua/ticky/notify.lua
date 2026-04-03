@@ -77,11 +77,26 @@ local function fire_notification(task_name, open_fn, auto_open)
 end
 
 --- Start the background poller.
+--- If the ticky binary is not found in PATH, a single warning is shown and
+--- the poller is NOT started — preventing a silent loop of failing jobstart
+--- calls on every poll interval.
 --- @param cfg     table     Plugin config (bin, poll_interval, auto_open)
 --- @param open_fn function  Called when the break prompt should open
 function M.start(cfg, open_fn)
   if timer then
     return -- already running
+  end
+
+  -- Guard: if the binary is not found, warn once and do not start the loop.
+  if vim.fn.executable(cfg.bin) == 0 then
+    vim.notify(
+      "ticky: binary '" .. (cfg.bin or "ticky") .. "' not found in PATH.\n"
+        .. "Install ticky from: https://github.com/wingitman/ticky\n"
+        .. "The ticky.nvim plugin will not poll until the binary is available.",
+      vim.log.levels.WARN,
+      { title = "ticky.nvim" }
+    )
+    return
   end
 
   local interval_ms = (cfg.poll_interval or 10) * 1000
@@ -96,7 +111,8 @@ function M.start(cfg, open_fn)
       end
 
       if code == 1 then
-        -- Timer still running — nothing to do yet.
+        -- Timer still running (or paused) — nothing to do yet.
+        -- Exit code 1 covers both "running" and "paused" states.
         return
       end
 
@@ -117,6 +133,12 @@ function M.stop()
     timer:close()
     timer = nil
   end
+end
+
+--- Reset the notified flag. Call this when the ticky window opens so that
+--- the poller starts fresh for the next session after the window closes.
+function M.reset()
+  notified = false
 end
 
 --- Returns true if the poller is currently running.

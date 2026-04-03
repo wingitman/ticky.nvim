@@ -74,6 +74,10 @@ function M.open()
   -- and we don't want a notification firing while the user is already in ticky.
   notify.stop()
 
+  -- Reset the notified flag so the poller starts fresh for the next session
+  -- after this window closes.
+  notify.reset()
+
   local cmd = vim.fn.shellescape(M.config.bin)
 
   window.open(M.config, cmd, function(_exit_code)
