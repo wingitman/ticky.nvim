@@ -15,8 +15,8 @@ local defaults = {
 	bin = "ticky",
 
 	-- Floating window dimensions (fraction of editor size).
-	width = 0.75,
-	height = 0.35,
+	width = 0.85,
+	height = 0.85,
 
 	-- Window border style. See :h nvim_open_win for valid values.
 	border = "rounded",

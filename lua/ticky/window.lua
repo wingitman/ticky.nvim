@@ -29,7 +29,7 @@ local function win_config(opts)
 
 	local w = math.floor(total_w * opts.width)
 	local h = math.floor(total_h * opts.height)
-	local row = math.floor((total_h - h) / 3)
+	local row = math.floor((total_h - h) / 2.5)
 	local col = math.floor((total_w - w) / 2)
 
 	return {
